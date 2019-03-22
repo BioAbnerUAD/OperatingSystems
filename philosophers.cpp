@@ -1,8 +1,8 @@
 
+#include <pthread.h> 
+#include <semaphore.h>
 #include <stdio.h>
 #include <string>
-#include <thread>
-#include <semaphore.h>
 
 #define N 5
 
@@ -125,11 +125,4 @@ int main() {
   for (i = 0; i < N; i++) {
     thread_id[i]->join();
   }
-
-
-  for (i = 0; i < N; i++) {
-    delete thread_id[i];
-  }
-
-  return 0;
 }
