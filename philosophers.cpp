@@ -1,9 +1,9 @@
 
 #include <pthread.h> 
-#include <semaphore.h> 
-#include <unistd.h>
+#include <semaphore.h>
 #include <stdio.h>
 #include <string>
+#include <thread>
 
 #define N 5
 
@@ -26,7 +26,7 @@ std::string philName[N] = { "Kierkegaard",
                             "Don Ramon" };
 
 sem_t mutex;
-sem_t S[N];
+sem_t semaphore[N];
 
 void test(int phnum) {
   if (state[phnum] == HUNGRY
@@ -39,13 +39,13 @@ void test(int phnum) {
 
     printf((philName[phnum] + " is Eating\n").c_str());
 
-    usleep(1000);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
 
     // sem_post(&S[phnum]) has no effect 
     // during takefork 
     // used to wake up hungry philosophers 
     // during putfork 
-    sem_post(&S[phnum]);
+    sem_post(&semaphore[phnum]);
   }
 }
 
@@ -65,9 +65,9 @@ void take_fork(int phnum) {
   sem_post(&mutex);
 
   // if unable to eat wait to be signalled 
-  sem_wait(&S[phnum]);
+  sem_wait(&semaphore[phnum]);
 
-  usleep(1);
+  std::this_thread::sleep_for(std::chrono::milliseconds(1));
 }
 
 // put down chopsticks 
@@ -93,11 +93,11 @@ void* philospher(void* num) {
 
     int* i = (int*)num;
 
-    usleep(1);
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
     take_fork(*i);
 
-    usleep(0);
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
     put_fork(*i);
   }
@@ -111,9 +111,9 @@ int main() {
   // initialize the semaphores 
   sem_init(&mutex, 0, 1);
 
-  for (i = 0; i < N; i++)
-
-    sem_init(&S[i], 0, 0);
+  for (i = 0; i < N; i++) {
+    sem_init(&semaphore[i], 0, 0);
+  }
 
   for (i = 0; i < N; i++) {
 
@@ -124,7 +124,7 @@ int main() {
     printf((philName[i] + " is thinking\n").c_str());
   }
 
-  for (i = 0; i < N; i++)
-
+  for (i = 0; i < N; i++) {
     pthread_join(thread_id[i], NULL);
+  }
 }
