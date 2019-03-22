@@ -1,5 +1,4 @@
 
-#include <pthread.h> 
 #include <semaphore.h>
 #include <stdio.h>
 #include <string>
@@ -126,4 +125,11 @@ int main() {
   for (i = 0; i < N; i++) {
     thread_id[i]->join();
   }
+
+
+  for (i = 0; i < N; i++) {
+    delete thread_id[i];
+  }
+
+  return 0;
 }
