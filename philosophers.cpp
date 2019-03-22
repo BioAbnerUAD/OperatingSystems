@@ -1,120 +1,120 @@
-#include <array>
-#include <mutex>
-#include <thread>
-#include <atomic>
-#include <chrono>
-#include <iostream>
-#include <string>
-#include <random>
-#include <iomanip>
- 
-std::mutex g_lockprint;
-constexpr  int no_of_philosophers = 5;
- 
-struct fork
-{
-   std::mutex mutex;
-};
- 
-struct table
-{
-   std::atomic<bool>                    ready{ false };
-   std::array<fork, no_of_philosophers> forks;
-};
- 
-struct philosopher
-{
-private:
-   std::string const name;
-   table const &     dinnertable;
-   fork&             left_fork;
-   fork&             right_fork;
-   std::thread       lifethread;
-   std::mt19937      rng{ std::random_device{}() };
-public:
-   philosopher(std::string n, table const & t, fork & l, fork & r) :
-      name(n), dinnertable(t), left_fork(l), right_fork(r), lifethread(&philosopher::dine, this)
-   {
-   }
- 
-   ~philosopher()
-   {
-      lifethread.join();
-   }
- 
-   void dine()
-   {
-      while (!dinnertable.ready);
- 
-      do
-      {
-         think();
-         eat();
-      } while (dinnertable.ready);
-   }
- 
-   void print(std::string text)
-   {
-      std::lock_guard<std::mutex> cout_lock(g_lockprint);
-      std::cout
-         << std::left << std::setw(10) << std::setfill(' ')
-         << name << text << std::endl;
-   }
- 
-   void eat()
-   {
-      std::lock(left_fork.mutex, right_fork.mutex);
- 
-      std::lock_guard<std::mutex> left_lock(left_fork.mutex,   std::adopt_lock);
-      std::lock_guard<std::mutex> right_lock(right_fork.mutex, std::adopt_lock);
- 
-      print(" started eating.");
- 
-      static thread_local std::uniform_int_distribution<> dist(1, 6);
-      std::this_thread::sleep_for(std::chrono::milliseconds(dist(rng) * 50));
- 
-      print(" finished eating.");
-   }
- 
-   void think()
-   {
-     print(" is thinking ");
 
-     static thread_local std::uniform_int_distribution<> wait(1, 6);
-     std::this_thread::sleep_for(std::chrono::milliseconds(wait(rng) * 150));
-   }
-};
- 
-void dine()
-{
-   std::this_thread::sleep_for(std::chrono::seconds(1));
-   std::cout << "Dinner started!" << std::endl;
- 
-   {
-      table _table;
-      std::array<philosopher, no_of_philosophers> philosophers
-      {
-         {
-            { "Aristotle", _table, _table.forks[0], _table.forks[1] },
-            { "Platon",    _table, _table.forks[1], _table.forks[2] },
-            { "Descartes", _table, _table.forks[2], _table.forks[3] },
-            { "Kant",      _table, _table.forks[3], _table.forks[4] },
-            { "Nietzsche", _table, _table.forks[4], _table.forks[0] },
-         }
-      };
- 
-      _table.ready = true;
-      std::this_thread::sleep_for(std::chrono::seconds(5));
-      _table.ready = false;
-   }
- 
-   std::cout << "Dinner done!" << std::endl;
+#include <pthread.h> 
+#include <semaphore.h> 
+#include <stdio.h> 
+
+#define N 5 
+#define THINKING 2 
+#define HUNGRY 1 
+#define EATING 0 
+#define LEFT (phnum + 4) % N 
+#define RIGHT (phnum + 1) % N 
+
+int state[N];
+int phil[N] = { 0, 1, 2, 3, 4 };
+
+sem_t mutex;
+sem_t S[N];
+
+void test(int phnum) {
+  if (state[phnum] == HUNGRY
+      && state[LEFT] != EATING
+      && state[RIGHT] != EATING) {
+    // state that eating 
+    state[phnum] = EATING;
+
+    sleep(2);
+
+    printf("Philosopher %d takes fork %d and %d\n",
+           phnum + 1, LEFT + 1, phnum + 1);
+
+    printf("Philosopher %d is Eating\n", phnum + 1);
+
+    // sem_post(&S[phnum]) has no effect 
+    // during takefork 
+    // used to wake up hungry philosophers 
+    // during putfork 
+    sem_post(&S[phnum]);
+  }
 }
- 
-int main()
-{   
-   dine();
-   system("pause");
- 
-   return 0;
+
+// take up chopsticks 
+void take_fork(int phnum) {
+
+  sem_wait(&mutex);
+
+  // state that hungry 
+  state[phnum] = HUNGRY;
+
+  printf("Philosopher %d is Hungry\n", phnum + 1);
+
+  // eat if neighbours are not eating 
+  test(phnum);
+
+  sem_post(&mutex);
+
+  // if unable to eat wait to be signalled 
+  sem_wait(&S[phnum]);
+
+  sleep(1);
+}
+
+// put down chopsticks 
+void put_fork(int phnum) {
+
+  sem_wait(&mutex);
+
+  // state that thinking 
+  state[phnum] = THINKING;
+
+  printf("Philosopher %d putting fork %d and %d down\n",
+         phnum + 1, LEFT + 1, phnum + 1);
+  printf("Philosopher %d is thinking\n", phnum + 1);
+
+  test(LEFT);
+  test(RIGHT);
+
+  sem_post(&mutex);
+}
+
+void* philospher(void* num) {
+
+  while (1) {
+
+    int* i = num;
+
+    sleep(1);
+
+    take_fork(*i);
+
+    sleep(0);
+
+    put_fork(*i);
+  }
+}
+
+int main() {
+
+  int i;
+  pthread_t thread_id[N];
+
+  // initialize the semaphores 
+  sem_init(&mutex, 0, 1);
+
+  for (i = 0; i < N; i++)
+
+    sem_init(&S[i], 0, 0);
+
+  for (i = 0; i < N; i++) {
+
+    // create philosopher processes 
+    pthread_create(&thread_id[i], NULL,
+                   philospher, &phil[i]);
+
+    printf("Philosopher %d is thinking\n", i + 1);
+  }
+
+  for (i = 0; i < N; i++)
+
+    pthread_join(thread_id[i], NULL);
 }
