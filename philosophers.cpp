@@ -35,11 +35,14 @@ void test(int phnum) {
     // state that eating 
     state[phnum] = EATING;
 
+    int micseconds = std::rand() % 4501 + 500;
+    float seconds = micseconds / 1000.f;
+
     printf((philName[phnum] + " takes fork %d and %d\n").c_str(), LEFT + 1, phnum + 1);
 
-    printf((philName[phnum] + " is Eating\n").c_str());
+    printf((philName[phnum] + " is Eating for %f seconds\n").c_str(), seconds);
 
-    std::this_thread::sleep_for(std::chrono::microseconds(std::rand() % 4500 + 500));
+    std::this_thread::sleep_for(std::chrono::microseconds(micseconds));
 
     // sem_post(&S[phnum]) has no effect 
     // during takefork 
@@ -108,7 +111,7 @@ int main() {
   int i;
   std::thread* thread_id[N];
 
-  std::srand(std::time(nullptr));
+  std::srand(std::time(0));
 
   // initialize the semaphores 
   sem_init(&print_mutex, 0, 1);
