@@ -67,7 +67,7 @@ void take_fork(int phnum) {
   // if unable to eat wait to be signalled 
   sem_wait(&S[phnum]);
 
-  usleep(1000);
+  usleep(5000);
 }
 
 // put down chopsticks 
