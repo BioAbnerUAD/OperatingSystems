@@ -39,7 +39,7 @@ void test(int phnum) {
 
     printf((philName[phnum] + " is Eating\n").c_str());
 
-    std::this_thread::sleep_for(std::chrono::seconds(std::rand() % 6));
+    std::this_thread::sleep_for(std::chrono::microseconds(std::rand() % 4500 + 500));
 
     // sem_post(&S[phnum]) has no effect 
     // during takefork 
