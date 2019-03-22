@@ -88,7 +88,7 @@ void put_fork(int phnum) {
 
 void* philospher(void* num) {
 
-  while (1) {
+  while (true) {
 
     int* i = (int*)num;
 
