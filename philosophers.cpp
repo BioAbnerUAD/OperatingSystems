@@ -2,7 +2,8 @@
 #include <pthread.h> 
 #include <semaphore.h> 
 #include <unistd.h>
-#include <stdio.h> 
+#include <stdio.h>
+#include <string>
 
 #define N 5 
 #define THINKING 2 
@@ -13,6 +14,11 @@
 
 int state[N];
 int phil[N] = { 0, 1, 2, 3, 4 };
+std::string philName[N] = { "Kierkegaard",
+                            "Nietzsche",
+                            "Socrates",
+                            "Descartes",
+                            "Don Ramon" };
 
 sem_t mutex;
 sem_t S[N];
@@ -26,10 +32,9 @@ void test(int phnum) {
 
     usleep(2);
 
-    printf("Philosopher %d takes fork %d and %d\n",
-           phnum + 1, LEFT + 1, phnum + 1);
+    printf((philName[phnum] + " takes fork %d and %d\n").c_str(), LEFT + 1, phnum + 1);
 
-    printf("Philosopher %d is Eating\n", phnum + 1);
+    printf((philName[phnum] + " is Eating\n").c_str());
 
     // sem_post(&S[phnum]) has no effect 
     // during takefork 
@@ -47,7 +52,7 @@ void take_fork(int phnum) {
   // state that hungry 
   state[phnum] = HUNGRY;
 
-  printf("Philosopher %d is Hungry\n", phnum + 1);
+  printf((philName[phnum] + " is Hungry\n").c_str());
 
   // eat if neighbours are not eating 
   test(phnum);
@@ -68,9 +73,8 @@ void put_fork(int phnum) {
   // state that thinking 
   state[phnum] = THINKING;
 
-  printf("Philosopher %d putting fork %d and %d down\n",
-         phnum + 1, LEFT + 1, phnum + 1);
-  printf("Philosopher %d is thinking\n", phnum + 1);
+  printf((philName[phnum] + " putting fork %d and %d down\n").c_str(), LEFT + 1, phnum + 1);
+  printf((philName[phnum] + " is thinking\n").c_str());
 
   test(LEFT);
   test(RIGHT);
@@ -112,7 +116,7 @@ int main() {
     pthread_create(&thread_id[i], NULL,
                    philospher, &phil[i]);
 
-    printf("Philosopher %d is thinking\n", i + 1);
+    printf((philName[i] + " is thinking\n").c_str());
   }
 
   for (i = 0; i < N; i++)
