@@ -105,7 +105,7 @@ void* philospher(void* num) {
 int main() {
 
   int i;
-  std::thread* thread_id[N];
+  pthread_t thread_id[N];
 
   // initialize the semaphores 
   sem_init(&mutex, 0, 1);
@@ -117,12 +117,13 @@ int main() {
   for (i = 0; i < N; i++) {
 
     // create philosopher processes 
-    thread_id[i] = new std::thread(philospher, &phil[i]);
+    pthread_create(&thread_id[i], NULL,
+                   philospher, &phil[i]);
 
     printf((philName[i] + " is thinking\n").c_str());
   }
 
   for (i = 0; i < N; i++) {
-    thread_id[i]->join();
+    pthread_join(thread_id[i], NULL);
   }
 }
