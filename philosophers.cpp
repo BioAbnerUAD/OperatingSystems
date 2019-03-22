@@ -5,10 +5,15 @@
 #include <stdio.h>
 #include <string>
 
-#define N 5 
-#define THINKING 2 
-#define HUNGRY 1 
-#define EATING 0 
+#define N 5
+
+enum philState
+{
+  EATING = 0, 
+  HUNGRY,
+  THINKING, 
+};
+
 #define LEFT (phnum + 4) % N 
 #define RIGHT (phnum + 1) % N 
 
