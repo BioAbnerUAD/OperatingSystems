@@ -7,7 +7,6 @@
 #include <string>
 #include <random>
 #include <iomanip>
-#include <string_view>
  
 std::mutex g_lockprint;
 constexpr  int no_of_philosophers = 5;
@@ -33,7 +32,7 @@ private:
    std::thread       lifethread;
    std::mt19937      rng{ std::random_device{}() };
 public:
-   philosopher(std::string_view n, table const & t, fork & l, fork & r) :
+   philosopher(std::string n, table const & t, fork & l, fork & r) :
       name(n), dinnertable(t), left_fork(l), right_fork(r), lifethread(&philosopher::dine, this)
    {
    }
@@ -54,7 +53,7 @@ public:
       } while (dinnertable.ready);
    }
  
-   void print(std::string_view text)
+   void print(std::string text)
    {
       std::lock_guard<std::mutex> cout_lock(g_lockprint);
       std::cout
@@ -79,10 +78,10 @@ public:
  
    void think()
    {
-      static thread_local std::uniform_int_distribution<> wait(1, 6);
-      std::this_thread::sleep_for(std::chrono::milliseconds(wait(rng) * 150));
- 
-      print(" is thinking ");
+     print(" is thinking ");
+
+     static thread_local std::uniform_int_distribution<> wait(1, 6);
+     std::this_thread::sleep_for(std::chrono::milliseconds(wait(rng) * 150));
    }
 };
  
@@ -92,21 +91,21 @@ void dine()
    std::cout << "Dinner started!" << std::endl;
  
    {
-      table table;
+      table _table;
       std::array<philosopher, no_of_philosophers> philosophers
       {
          {
-            { "Aristotle", table, table.forks[0], table.forks[1] },
-            { "Platon",    table, table.forks[1], table.forks[2] },
-            { "Descartes", table, table.forks[2], table.forks[3] },
-            { "Kant",      table, table.forks[3], table.forks[4] },
-            { "Nietzsche", table, table.forks[4], table.forks[0] },
+            { "Aristotle", _table, _table.forks[0], _table.forks[1] },
+            { "Platon",    _table, _table.forks[1], _table.forks[2] },
+            { "Descartes", _table, _table.forks[2], _table.forks[3] },
+            { "Kant",      _table, _table.forks[3], _table.forks[4] },
+            { "Nietzsche", _table, _table.forks[4], _table.forks[0] },
          }
       };
  
-      table.ready = true;
+      _table.ready = true;
       std::this_thread::sleep_for(std::chrono::seconds(5));
-      table.ready = false;
+      _table.ready = false;
    }
  
    std::cout << "Dinner done!" << std::endl;
@@ -115,6 +114,7 @@ void dine()
 int main()
 {   
    dine();
+   system("pause");
  
    return 0;
 }
