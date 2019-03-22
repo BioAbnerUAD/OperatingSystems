@@ -1,8 +1,8 @@
 
-#include <semaphore.h>
 #include <stdio.h>
 #include <string>
 #include <thread>
+#include <semaphore.h>
 
 #define N 5
 
