@@ -35,11 +35,11 @@ void test(int phnum) {
     // state that eating 
     state[phnum] = EATING;
 
-    usleep(2);
-
     printf((philName[phnum] + " takes fork %d and %d\n").c_str(), LEFT + 1, phnum + 1);
 
     printf((philName[phnum] + " is Eating\n").c_str());
+
+    usleep(1000);
 
     // sem_post(&S[phnum]) has no effect 
     // during takefork 
