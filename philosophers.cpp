@@ -1,6 +1,7 @@
 
 #include <pthread.h> 
 #include <semaphore.h> 
+#include <unistd.h>
 #include <stdio.h> 
 
 #define N 5 
@@ -23,7 +24,7 @@ void test(int phnum) {
     // state that eating 
     state[phnum] = EATING;
 
-    sleep(2);
+    usleep(2);
 
     printf("Philosopher %d takes fork %d and %d\n",
            phnum + 1, LEFT + 1, phnum + 1);
@@ -56,7 +57,7 @@ void take_fork(int phnum) {
   // if unable to eat wait to be signalled 
   sem_wait(&S[phnum]);
 
-  sleep(1);
+  usleep(1);
 }
 
 // put down chopsticks 
@@ -83,11 +84,11 @@ void* philospher(void* num) {
 
     int* i = num;
 
-    sleep(1);
+    usleep(1);
 
     take_fork(*i);
 
-    sleep(0);
+    usleep(0);
 
     put_fork(*i);
   }
