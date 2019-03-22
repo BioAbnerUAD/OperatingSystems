@@ -82,7 +82,7 @@ void* philospher(void* num) {
 
   while (1) {
 
-    int* i = num;
+    int* i = (int*)num;
 
     usleep(1);
 
