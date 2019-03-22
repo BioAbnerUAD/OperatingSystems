@@ -1,17 +1,16 @@
 
-#include <pthread.h> 
-#include <semaphore.h> 
-#include <unistd.h>
 #include <stdio.h>
 #include <string>
+#include <thread>
+#include <semaphore.h>
 
 #define N 5
 
 enum philState
 {
-  EATING = 0, 
+  EATING = 0,
   HUNGRY,
-  THINKING, 
+  THINKING,
 };
 
 #define LEFT (phnum + 4) % N 
@@ -26,7 +25,7 @@ std::string philName[N] = { "Kierkegaard",
                             "Don Ramon" };
 
 sem_t mutex;
-sem_t S[N];
+sem_t semaphore[N];
 
 void test(int phnum) {
   if (state[phnum] == HUNGRY
@@ -39,13 +38,13 @@ void test(int phnum) {
 
     printf((philName[phnum] + " is Eating\n").c_str());
 
-    usleep(1000);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
 
     // sem_post(&S[phnum]) has no effect 
     // during takefork 
     // used to wake up hungry philosophers 
     // during putfork 
-    sem_post(&S[phnum]);
+    sem_post(&semaphore[phnum]);
   }
 }
 
@@ -65,9 +64,9 @@ void take_fork(int phnum) {
   sem_post(&mutex);
 
   // if unable to eat wait to be signalled 
-  sem_wait(&S[phnum]);
+  sem_wait(&semaphore[phnum]);
 
-  usleep(5000);
+  std::this_thread::sleep_for(std::chrono::milliseconds(1));
 }
 
 // put down chopsticks 
@@ -93,11 +92,11 @@ void* philospher(void* num) {
 
     int* i = (int*)num;
 
-    usleep(1);
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
     take_fork(*i);
 
-    usleep(0);
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
     put_fork(*i);
   }
@@ -106,25 +105,31 @@ void* philospher(void* num) {
 int main() {
 
   int i;
-  pthread_t thread_id[N];
+  std::thread* thread_id[N];
 
   // initialize the semaphores 
   sem_init(&mutex, 0, 1);
 
-  for (i = 0; i < N; i++)
-
-    sem_init(&S[i], 0, 0);
+  for (i = 0; i < N; i++) {
+    sem_init(&semaphore[i], 0, 0);
+  }
 
   for (i = 0; i < N; i++) {
 
     // create philosopher processes 
-    pthread_create(&thread_id[i], NULL,
-                   philospher, &phil[i]);
+    thread_id[i] = new std::thread(philospher, &phil[i]);
 
     printf((philName[i] + " is thinking\n").c_str());
   }
 
-  for (i = 0; i < N; i++)
+  for (i = 0; i < N; i++) {
+    thread_id[i]->join();
+  }
 
-    pthread_join(thread_id[i], NULL);
+
+  for (i = 0; i < N; i++) {
+    delete thread_id[i];
+  }
+
+  return 0;
 }
