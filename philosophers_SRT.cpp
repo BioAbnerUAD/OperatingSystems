@@ -1,15 +1,46 @@
-/*
 
 #include <stdio.h>
 #include <string>
 #include <thread>
 #include <ctime>
-#include <semaphore.h>
+#include <mutex>
+#include <condition_variable>
 
-#define N 6
+#define N 5
 
-#define LEFT (phnum + N - 1) % N 
+#define LEFT (phnum + 4) % N 
 #define RIGHT (phnum + 1) % N 
+
+class semaphore
+{
+private:
+  std::mutex mutex_;
+  std::condition_variable condition_;
+  unsigned long count_ = 1; // Initialized as unlocked.
+
+public:
+  void notify() {
+    std::lock_guard<decltype(mutex_)> lock(mutex_);
+    ++count_;
+    condition_.notify_one();
+  }
+
+  void wait() {
+    std::unique_lock<decltype(mutex_)> lock(mutex_);
+    while (!count_) // Handle spurious wake-ups.
+      condition_.wait(lock);
+    --count_;
+  }
+
+  bool try_wait() {
+    std::lock_guard<decltype(mutex_)> lock(mutex_);
+    if (count_) {
+      --count_;
+      return true;
+    }
+    return false;
+  }
+};
 
 enum philState
 {
@@ -18,64 +49,46 @@ enum philState
   THINKING,
 };
 
-const int maxTime = 3000;
-
 int state[N];
-int phil[N] = { 0, 1, 2, 3, 4, 5 };
-int remainingTime[N] = { 0, 0, 0, 0, 0, 0 };
-
+int phil[N] = { 0, 1, 2, 3, 4 };
 std::string philName[N] = { "Kierkegaard",
                             "Nietzsche",
                             "Socrates",
                             "Descartes",
-                            "Ayn Rand",
                             "Don Ramon" };
 
-sem_t print_mutex;
-sem_t fork[N];
+semaphore print_mutex;
+semaphore fork[N];
 
 void test(int phnum) {
-  if (state[phnum] == HUNGRY
-      && state[LEFT] != EATING
-      && state[RIGHT] != EATING) {
+  if (state[phnum] == HUNGRY &&
+      state[LEFT] != EATING &&
+      state[RIGHT] != EATING) {
+
     // state that eating 
     state[phnum] = EATING;
 
-    int milisec;
-
-    if (remainingTime[phnum] != 0) {
-      milisec = remainingTime[phnum];
-      remainingTime[phnum] = 0;
-    }
-    else {
-      milisec = std::rand() % 4501 + 500;
-    }
-
-    if (maxTime < milisec) {
-      remainingTime[phnum] = milisec - maxTime;
-      milisec = maxTime;
-    }
-    
-    float seconds = milisec / 1000.f;
+    int micseconds = std::rand() % 4501 + 500;
+    float seconds = micseconds / 1000.f;
 
     printf((philName[phnum] + " takes fork %d and %d\n").c_str(), LEFT + 1, phnum + 1);
 
     printf((philName[phnum] + " is Eating for %f seconds\n").c_str(), seconds);
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(milisec));
+    std::this_thread::sleep_for(std::chrono::milliseconds(micseconds));
 
-    // sem_post(&S[phnum]) has no effect 
+    // sem_post(&fork[phnum]) has no effect 
     // during takefork 
     // used to wake up hungry philosophers 
     // during putfork 
-    sem_post(&fork[phnum]);
+    fork[phnum].notify();
   }
 }
 
 // take up chopsticks 
 void take_fork(int phnum) {
 
-  sem_wait(&print_mutex);
+  print_mutex.wait();
 
   // state that hungry 
   state[phnum] = HUNGRY;
@@ -85,10 +98,10 @@ void take_fork(int phnum) {
   // eat if neighbours are not eating 
   test(phnum);
 
-  sem_post(&print_mutex);
+  print_mutex.notify();
 
   // if unable to eat wait to be signalled 
-  sem_wait(&fork[phnum]);
+  fork[phnum].wait();
 
   std::this_thread::sleep_for(std::chrono::milliseconds(1));
 }
@@ -96,24 +109,18 @@ void take_fork(int phnum) {
 // put down chopsticks 
 void put_fork(int phnum) {
 
-  sem_wait(&print_mutex);
+  print_mutex.wait();
 
   // state that thinking 
   state[phnum] = THINKING;
 
   printf((philName[phnum] + " putting fork %d and %d down\n").c_str(), LEFT + 1, phnum + 1);
-
-  if (remainingTime[phnum] != 0) {
-    float seconds = remainingTime[phnum] / 1000.f;
-    printf((philName[phnum] + "'s remaining time was %f\n").c_str(), seconds);
-  }
-
   printf((philName[phnum] + " is thinking\n").c_str());
 
   test(LEFT);
   test(RIGHT);
 
-  sem_post(&print_mutex);
+  print_mutex.notify();
 }
 
 void* philospher(void* num) {
@@ -139,13 +146,6 @@ int main() {
 
   std::srand(std::time(0));
 
-  // initialize the semaphores 
-  sem_init(&print_mutex, 0, 1);
-
-  for (i = 0; i < N; i++) {
-    sem_init(&fork[i], 0, 0);
-  }
-
   for (i = 0; i < N; i++) {
 
     // create philosopher processes 
@@ -165,4 +165,3 @@ int main() {
 
   return 0;
 }
-*/

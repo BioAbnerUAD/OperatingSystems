@@ -1,15 +1,46 @@
-/*
 
 #include <stdio.h>
 #include <string>
 #include <thread>
 #include <ctime>
-#include <semaphore.h>
+#include <mutex>
+#include <condition_variable>
 
 #define N 6
 
 #define LEFT (phnum + N - 1) % N 
 #define RIGHT (phnum + 1) % N 
+
+class semaphore
+{
+private:
+  std::mutex mutex_;
+  std::condition_variable condition_;
+  unsigned long count_ = 1; // Initialized as unlocked.
+
+public:
+  void notify() {
+    std::lock_guard<decltype(mutex_)> lock(mutex_);
+    ++count_;
+    condition_.notify_one();
+  }
+
+  void wait() {
+    std::unique_lock<decltype(mutex_)> lock(mutex_);
+    while (!count_) // Handle spurious wake-ups.
+      condition_.wait(lock);
+    --count_;
+  }
+
+  bool try_wait() {
+    std::lock_guard<decltype(mutex_)> lock(mutex_);
+    if (count_) {
+      --count_;
+      return true;
+    }
+    return false;
+  }
+};
 
 enum philState
 {
@@ -31,8 +62,8 @@ std::string philName[N] = { "Kierkegaard",
                             "Ayn Rand",
                             "Don Ramon" };
 
-sem_t print_mutex;
-sem_t fork[N];
+semaphore print_mutex;
+semaphore fork[N];
 
 void test(int phnum) {
   if (state[phnum] == HUNGRY
@@ -165,4 +196,3 @@ int main() {
 
   return 0;
 }
-*/

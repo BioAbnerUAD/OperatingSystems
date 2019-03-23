@@ -8,6 +8,9 @@
 
 #define N 5
 
+#define LEFT (phnum + 4) % N 
+#define RIGHT (phnum + 1) % N 
+
 class semaphore
 {
 private:
@@ -46,9 +49,6 @@ enum philState
   THINKING,
 };
 
-#define LEFT (phnum + 4) % N 
-#define RIGHT (phnum + 1) % N 
-
 int state[N];
 int phil[N] = { 0, 1, 2, 3, 4 };
 std::string philName[N] = { "Kierkegaard",
@@ -61,9 +61,10 @@ semaphore print_mutex;
 semaphore fork[N];
 
 void test(int phnum) {
-  if (state[phnum] == HUNGRY
-      && state[LEFT] != EATING
-      && state[RIGHT] != EATING) {
+  if (state[phnum] == HUNGRY && 
+      state[LEFT] != EATING &&
+      state[RIGHT] != EATING) {
+    
     // state that eating 
     state[phnum] = EATING;
 
