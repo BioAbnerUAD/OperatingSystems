@@ -19,7 +19,7 @@ private:
   unsigned long count_ = 1; // Initialized as unlocked.
 
 public:
-  void notify() {
+  void post() {
     std::lock_guard<decltype(mutex_)> lock(mutex_);
     ++count_;
     condition_.notify_one();
@@ -81,7 +81,7 @@ void test(int phnum) {
     // during takefork 
     // used to wake up hungry philosophers 
     // during putfork 
-    fork[phnum].notify();
+    fork[phnum].post();
   }
 }
 
@@ -98,7 +98,7 @@ void take_fork(int phnum) {
   // eat if neighbours are not eating 
   test(phnum);
 
-  print_mutex.notify();
+  print_mutex.post();
   
   // if unable to eat wait to be signalled 
   fork[phnum].wait();
@@ -120,7 +120,7 @@ void put_fork(int phnum) {
   test(LEFT);
   test(RIGHT);
 
-  print_mutex.notify();
+  print_mutex.post();
 }
 
 void* philospher(void* num) {

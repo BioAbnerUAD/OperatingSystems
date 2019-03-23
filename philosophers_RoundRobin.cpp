@@ -19,7 +19,7 @@ private:
   unsigned long count_ = 1; // Initialized as unlocked.
 
 public:
-  void notify() {
+  void post() {
     std::lock_guard<decltype(mutex_)> lock(mutex_);
     ++count_;
     condition_.notify_one();
@@ -99,14 +99,14 @@ void test(int phnum) {
     // during takefork 
     // used to wake up hungry philosophers 
     // during putfork 
-    sem_post(&fork[phnum]);
+    fork[phnum].post();
   }
 }
 
 // take up chopsticks 
 void take_fork(int phnum) {
 
-  sem_wait(&print_mutex);
+  print_mutex.wait();
 
   // state that hungry 
   state[phnum] = HUNGRY;
@@ -116,10 +116,10 @@ void take_fork(int phnum) {
   // eat if neighbours are not eating 
   test(phnum);
 
-  sem_post(&print_mutex);
+  print_mutex.post();
 
   // if unable to eat wait to be signalled 
-  sem_wait(&fork[phnum]);
+  fork[phnum].wait();
 
   std::this_thread::sleep_for(std::chrono::milliseconds(1));
 }
@@ -127,7 +127,7 @@ void take_fork(int phnum) {
 // put down chopsticks 
 void put_fork(int phnum) {
 
-  sem_wait(&print_mutex);
+  print_mutex.wait();
 
   // state that thinking 
   state[phnum] = THINKING;
@@ -144,7 +144,7 @@ void put_fork(int phnum) {
   test(LEFT);
   test(RIGHT);
 
-  sem_post(&print_mutex);
+  print_mutex.post();
 }
 
 void* philospher(void* num) {
@@ -169,13 +169,6 @@ int main() {
   std::thread* thread_id[N];
 
   std::srand(std::time(0));
-
-  // initialize the semaphores 
-  sem_init(&print_mutex, 0, 1);
-
-  for (i = 0; i < N; i++) {
-    sem_init(&fork[i], 0, 0);
-  }
 
   for (i = 0; i < N; i++) {
 
