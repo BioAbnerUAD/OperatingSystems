@@ -5,7 +5,10 @@
 #include <ctime>
 #include <semaphore.h>
 
-#define N 5
+#define N 6
+
+#define LEFT (phnum + N - 1) % N 
+#define RIGHT (phnum + 1) % N 
 
 enum philState
 {
@@ -14,19 +17,17 @@ enum philState
   THINKING,
 };
 
-#define LEFT (phnum + 4) % N 
-#define RIGHT (phnum + 1) % N 
-
 const int maxTime = 3000;
 
 int state[N];
-int phil[N] = { 0, 1, 2, 3, 4 };
-int remainingTime[N] = { 0, 0, 0, 0, 0 };
+int phil[N] = { 0, 1, 2, 3, 4, 5 };
+int remainingTime[N] = { 0, 0, 0, 0, 0, 0 };
 
 std::string philName[N] = { "Kierkegaard",
                             "Nietzsche",
                             "Socrates",
                             "Descartes",
+                            "Ayn Rand",
                             "Don Ramon" };
 
 sem_t print_mutex;
@@ -39,28 +40,28 @@ void test(int phnum) {
     // state that eating 
     state[phnum] = EATING;
 
-    int micseconds;
+    int milisec;
 
     if (remainingTime[phnum] != 0) {
-      micseconds = remainingTime[phnum];
+      milisec = remainingTime[phnum];
       remainingTime[phnum] = 0;
     }
     else {
-      micseconds = std::rand() % 4501 + 500;
+      milisec = std::rand() % 4501 + 500;
     }
 
-    if (maxTime < micseconds) {
-      remainingTime[phnum] = micseconds - maxTime;
-      micseconds = maxTime;
+    if (maxTime < milisec) {
+      remainingTime[phnum] = milisec - maxTime;
+      milisec = maxTime;
     }
     
-    float seconds = micseconds / 1000.f;
+    float seconds = milisec / 1000.f;
 
     printf((philName[phnum] + " takes fork %d and %d\n").c_str(), LEFT + 1, phnum + 1);
 
     printf((philName[phnum] + " is Eating for %f seconds\n").c_str(), seconds);
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(micseconds));
+    std::this_thread::sleep_for(std::chrono::milliseconds(milisec));
 
     // sem_post(&S[phnum]) has no effect 
     // during takefork 
@@ -100,6 +101,12 @@ void put_fork(int phnum) {
   state[phnum] = THINKING;
 
   printf((philName[phnum] + " putting fork %d and %d down\n").c_str(), LEFT + 1, phnum + 1);
+
+  if (remainingTime[phnum] != 0) {
+    float seconds = remainingTime[phnum] / 1000.f;
+    printf((philName[phnum] + "'s remaining time was %f\n").c_str(), seconds);
+  }
+
   printf((philName[phnum] + " is thinking\n").c_str());
 
   test(LEFT);
