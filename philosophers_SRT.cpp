@@ -5,10 +5,11 @@
 #include <ctime>
 #include <mutex>
 #include <condition_variable>
+#include <queue>
 
 #define N 5
 
-#define LEFT (phnum + 4) % N 
+#define LEFT (phnum + N - 1) % N 
 #define RIGHT (phnum + 1) % N 
 
 class semaphore
@@ -77,7 +78,7 @@ void test(int phnum) {
 
     std::this_thread::sleep_for(std::chrono::milliseconds(micseconds));
 
-    // sem_post(&fork[phnum]) has no effect 
+    // post has no effect 
     // during takefork 
     // used to wake up hungry philosophers 
     // during putfork 
@@ -95,12 +96,12 @@ void take_fork(int phnum) {
 
   printf((philName[phnum] + " is Hungry\n").c_str());
 
-  // eat if neighbours are not eating 
+  // eat if neighbors are not eating 
   test(phnum);
 
   print_mutex.post();
 
-  // if unable to eat wait to be signalled 
+  // if unable to eat wait to be signaled 
   fork[phnum].wait();
 
   std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -125,9 +126,9 @@ void put_fork(int phnum) {
 
 void* philospher(void* num) {
 
+  int* i = (int*)num;
+  
   while (true) {
-
-    int* i = (int*)num;
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
