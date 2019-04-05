@@ -1,12 +1,15 @@
 #include "Philosopher.h"
 
-#include <iostream>
-
+#include "PrintMultiThread.h"
 #include "Random.h"
 
-void Philosopher::init(Philosopher * leftPhil, Philosopher * rightPhil) {
+void Philosopher::init(Philosopher* leftPhil,
+                       Philosopher* rightPhil,
+                       PhilosopherQueue* queue) {
   m_leftPhil = leftPhil;
   m_rightPhil = rightPhil;
+  m_leftID = leftPhil->m_rightID;
+  m_queue = queue;
 }
 
 void Philosopher::run() {
@@ -16,168 +19,121 @@ void Philosopher::run() {
     try_eat();
   }
 
-  m_printMutex.wait();
-
-  std::cout << m_name << " is done eating." << std::endl;
-
-  m_printMutex.post();
+  m_state = PhilState::FULL;
+  PrintMultiThread::print(m_name + " is done eating.\n");
 }
 
 void Philosopher::eat() {
-  m_printMutex.wait();
+  m_state = PhilState::EATING; // state that eating
 
-  if (m_state == PhilState::HUNGRY) {
-    take_forks();
-
-    m_state = PhilState::EATING;
-    if (s_useRandomEatTime) {
-      m_timeToEat = Random::randomInt(500, 10000, m_id);
-      if ((s_policies & Policies::ROUNDROBIN) == Policies::ROUNDROBIN &&
-          m_timeToEat > s_roundRobinTime) {
-        m_timeToEat = s_roundRobinTime;
-      }
-      else if(m_timeToEat > m_totalTimeToEat) {
-        m_timeToEat = m_totalTimeToEat;
-      }
+  if (s_useRandomEatTime) { //use random eating time
+    m_timeToEat = Random::randomInt(500, 5000, m_rightID);
+    if ((s_policies & Policies::ROUNDROBIN) == Policies::ROUNDROBIN &&
+        m_timeToEat > s_roundRobinTime) {
+      m_timeToEat = s_roundRobinTime; //random eating time clamped
     }
-    else{
-      if ((s_policies & Policies::ROUNDROBIN) == Policies::ROUNDROBIN) {
-        m_timeToEat = s_roundRobinTime;
-      }
-      else {
-        m_timeToEat = m_totalTimeToEat;
-      }
+    else if (m_timeToEat > m_totalTimeToEat) {
+      m_timeToEat = m_totalTimeToEat; //plain random eating time
     }
-
-    float seconds = m_timeToEat / 1000.f;
-
-    std::cout << m_name << " is Eating for " << seconds << " seconds" << std::endl;
-
-    m_printMutex.post();
-
-    while (m_timeToEat > 0) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(1));
-      m_timeToEat--;
-      m_totalTimeToEat--;
-      if (PhilState::SUSPENDED == m_state) {
-        restore();
-      }
-    }
-
-    m_printMutex.wait();
-    std::cout << m_name << " putting fork " << m_id << " and "
-              << m_leftPhil->m_id << " down" << std::endl;
-
-    m_leftFork.post();
-    m_rightFork.post();
-
-    m_printMutex.post();
-
   }
-  else {
-    m_printMutex.post();
+  else { //plain eating time
+    if ((s_policies & Policies::ROUNDROBIN) == Policies::ROUNDROBIN) {
+      m_timeToEat = s_roundRobinTime; //eat in time intervals
+    }
+    else {
+      m_timeToEat = m_totalTimeToEat; //eat all your time at once
+    }
   }
+
+  float seconds = m_timeToEat / 1000.f;
+
+  PrintMultiThread::print(m_name + " is Eating for " + std::to_string(seconds) + " seconds.\n");
+
+  while (m_timeToEat > 0) { // this is the actual eating
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    m_timeToEat--;
+    m_totalTimeToEat--;
+    m_timeEaten++;
+
+    // if suspended that wait until restored
+    if (PhilState::SUSPENDED == m_state) {
+      restore();
+    }
+  }
+
+  // put down forks
+  m_leftFork.post();
+  m_rightFork.post();
+
+  // print when finished eating
+  PrintMultiThread::print(m_name + " putting fork " + std::to_string(m_rightID) + " and " +
+                          std::to_string(m_leftID) + " down.\n");
+
+  PrintMultiThread::print(m_name + " has eaten for a total of " + 
+                          std::to_string(m_timeEaten / 1000.f) + " seconds.\n");
 }
 
 void Philosopher::try_eat() {
 
-  m_printMutex.wait();
-
   // m_state that hungry 
   m_state = PhilState::HUNGRY;
 
-  m_printMutex.post();
+  PrintMultiThread::print(m_name + " is Hungry.\n");
 
-  // eat if neighbors are not eating 
-  eat();
+  take_forks(); // get forks before eating
+
+  eat(); // eat if neighbors are not eating 
 
   std::this_thread::sleep_for(std::chrono::milliseconds(1));
 }
 
 void Philosopher::take_forks() {
-  if (m_type == PhilType::MASTER) {
-    if (m_rightPhil->m_state == PhilState::EATING &&
-        m_rightPhil->m_type == PhilType::APRENTICE) {
-
-      m_rightPhil->suspend();
-      std::cout << m_name << " takes fork away from " << m_rightPhil->m_name << std::endl;
-    }
-
-    if (m_leftPhil->m_state == PhilState::EATING &&
-        m_leftPhil->m_type == PhilType::APRENTICE) {
-
-      m_leftPhil->suspend();
-      std::cout << m_name << " takes fork away from " << m_leftPhil->m_name << std::endl;
-    }
-  }
-  if ((s_policies & Policies::SRT) == Policies::SRT) {
-    if (m_rightPhil->m_state == PhilState::EATING &&
-        m_rightPhil->m_type == m_type &&
-        m_rightPhil->m_timeToEat > m_totalTimeToEat) {
-
-      m_rightPhil->suspend();
-      std::cout << m_name << " takes fork away from " << m_rightPhil->m_name << std::endl;
-    }
-
-    if (m_leftPhil->m_state == PhilState::EATING &&
-        m_leftPhil->m_type == m_type &&
-        m_leftPhil->m_timeToEat > m_totalTimeToEat) {
-
-      m_leftPhil->suspend();
-      std::cout << m_name << " takes fork away from " << m_leftPhil->m_name << std::endl;
-    }
-  }
-
-  m_printMutex.post();
-
+  //take forks
   m_leftFork.wait();
   m_rightFork.wait();
 
-  m_printMutex.wait();
-
-  std::cout << m_name << " takes fork " 
-            << m_id << " and " << m_leftPhil->m_id << std::endl;
+  //print that took forks
+  PrintMultiThread::print(m_name + " takes fork " + std::to_string(m_rightID) +
+                          " and " + std::to_string(m_leftID) + ".\n");
 }
 
 void Philosopher::think() {
 
-  m_printMutex.wait();
+  m_state = PhilState::THINKING; // state that thinking 
 
-  // m_state that thinking 
-  m_state = PhilState::THINKING;
-
-  int thinkTime = Random::randomInt(500, 10000, m_id);
+  // think for a random amount of time
+  int thinkTime = Random::randomInt(500, 5000, m_rightID);
 
   float seconds = thinkTime / 1000.f;
 
-  std::cout << m_name << " is thinking for " << seconds << " seconds" << std::endl;
+  // print that thinking
+  PrintMultiThread::print(m_name + " is thinking for " + 
+                          std::to_string(seconds) + " seconds.\n");
 
-  m_printMutex.post();
-
+  // think
   std::this_thread::sleep_for(std::chrono::milliseconds(thinkTime));
 }
 
 void Philosopher::suspend() {
-  m_state = PhilState::SUSPENDED;
-  m_leftFork.post();
+  m_state = PhilState::SUSPENDED; // state that suspended
+  m_leftFork.post(); //drop forks
   m_rightFork.post();
 }
 
 void Philosopher::restore() {
-  m_leftFork.wait();
+  m_leftFork.wait();  //get forks
   m_rightFork.wait();
 
-  m_state = PhilState::EATING;
-
-  m_printMutex.wait();
-
-  std::cout << m_name << " takes fork "
-    << m_leftPhil->m_id << " and " << m_id << std::endl;
+  m_state = PhilState::EATING; // state that eating
 
   float seconds = m_timeToEat / 1000.f;
-  std::cout << m_name << " continues eating for " << seconds << " seconds" << std::endl;
 
-  m_printMutex.post();
+  // print that once again eating
+  PrintMultiThread::print(m_name + " takes fork " + std::to_string(m_leftID) +
+                          " and " + std::to_string(m_rightID) + ".\n");
+
+  PrintMultiThread::print(m_name + " continues eating for " + 
+                          std::to_string(seconds) + " seconds.\n");
 }
 
 int Philosopher::s_policies = 0;

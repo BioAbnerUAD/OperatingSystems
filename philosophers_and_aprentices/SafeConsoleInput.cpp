@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <termios.h>
 
+// no standard getch in linux. must define one using linux libraries
 char _getch() {
   char buf = 0;
   struct termios old = { 0 };
@@ -29,7 +30,7 @@ char _getch() {
 
 #elif defined(_WIN32) || defined(WIN32)
 
-#include <conio.h>
+#include <conio.h> // for windows getch
 
 #endif
 
@@ -42,13 +43,13 @@ void Console::Clear() {
 }
 
 float Console::ReadFloat() {
-  bool decimal = false;
-  std::string resStr;
-  char c;
+  bool decimal = false; //true when dealing with decimals false when whole numbers
+  std::string resStr; //char buffer
+  char c; //current char being read
 
   do {
     c = _getch();
-    if (c == '\b') {
+    if (c == '\b') { //deal with backspaces
       if (resStr.size() > 0) {
         if (resStr[resStr.size() - 1] == '.') {
           decimal = false;
@@ -59,32 +60,33 @@ float Console::ReadFloat() {
         std::cout << ('\b');
       }
     }
-    else if (c == '.') {
+    else if (c == '.') { //change to decimal mode
       if (!decimal) {
         decimal = true;
         resStr += c;
         std::cout << (c);
       }
     }
-    else if (c >= '0' && c <= '9') {
+    else if (c >= '0' && c <= '9') { //accept numbers
       if (c != '0' || resStr.size() != 0) {
         resStr += c;
         std::cout << (c);
       }
     }
+    // end when we have a valid float and enter is pressed
   } while (c != 13 || resStr.size() == 0 || resStr == ".");
 
   std::cout << ('\n');
 
-  return std::stof(resStr);
+  return std::stof(resStr); //return all chars as a float
 }
 
 int Console::ReadInt() {
-  std::string resStr = "";
-  char c;
+  std::string resStr = ""; //char buffer
+  char c; //current char being read
   do {
     c = _getch();
-    if (c == '\b') {
+    if (c == '\b') { //deal with backspaces
       if (resStr.size() > 0) {
         resStr.pop_back();
         std::cout << ('\b');
@@ -92,24 +94,24 @@ int Console::ReadInt() {
         std::cout << ('\b');
       }
     }
-    else if (c >= '0' && c <= '9') {
+    else if (c >= '0' && c <= '9') { //accept numbers
       if (c != '0' || resStr.size() > 0) {
         resStr.push_back(c);
         std::cout << c;
       }
     }
-
+    // end when we have a valid int and enter is pressed
   } while (c != '\r' && c != '\n' && c != '\0' || resStr.size() == 0);
 
-  return std::stoi(resStr);
+  return std::stoi(resStr); //return all chars as an int
 }
 
 std::string Console::ReadString() {
-  std::string resStr = "";
-  char c;
+  std::string resStr = ""; //char buffer
+  char c; //current char being read
   do {
     c = _getch();
-    if (c == '\b') {
+    if (c == '\b') { //deal with backspaces
       if (resStr.size() > 0) {
         resStr.pop_back();
         std::cout << ('\b');
@@ -117,11 +119,12 @@ std::string Console::ReadString() {
         std::cout << ('\b');
       }
     }
+    // accept any except white space chars (does accept actual spaces)
     else if (c != '\r' && c != '\n' && c != '\t' && c != '\0') {
       resStr.push_back(c);
       std::cout << c;
     }
-
+    // end when we have a valid string and enter is pressed
   } while (c != '\r' && c != '\n' && c != '\0' || resStr.size() == 0);
 
   return resStr;
@@ -129,14 +132,15 @@ std::string Console::ReadString() {
 
 bool Console::ReadBool(char trueChar, char falseChar) {
 
-  bool res;
-  char c;
+  bool res; //resulting flag
+  char c; //current char being read
   do {
     c = _getch();
+    // only accept trueChar or falseChar
     if (c == trueChar || c == falseChar) {
-      res = c == trueChar;
+      res = (c == trueChar); //result is equivalent to trueChar
       std::cout << c;
-      break;
+      break; //exits when given valid char
     }
 
   } while (true);

@@ -27,9 +27,9 @@ void PhilosopherProgram::PrepareThreads() {
   std::cout << std::endl;
   std::cout << std::endl;
 
-  fork.resize(numPhilosophers);
+  forks.resize(numPhilosophers);
   philosophers.reserve(numPhilosophers);
-  philThread.reserve(numPhilosophers);
+  philThread.reserve(numPhilosophers + 1);
 
   for (int i = 0; i < numPhilosophers; i++) {
     std::cout << "Name philosopher number " << i + 1 << ": ";
@@ -45,23 +45,28 @@ void PhilosopherProgram::PrepareThreads() {
     std::cout << std::endl;
 
     philosophers.emplace_back(i + 1, philName,
-      (isMaster ? PhilType::MASTER : PhilType::APRENTICE),
-                              timeToEat, print_mutex,
-                              fork[i], fork[next(i, numPhilosophers)]);
+                              (isMaster ? PhilType::MASTER : PhilType::APRENTICE),
+                              timeToEat,
+                              forks[i], 
+                              forks[next(i, numPhilosophers)]);
+
+    queueSystem.AddPhilosopher(&philosophers.back());
   }
 }
 
 void PhilosopherProgram::RunThreads() {
-
   for (int i = 0; i < numPhilosophers; i++) {
     philosophers[i].init(&philosophers[prev(i, numPhilosophers)],
-                         &philosophers[next(i, numPhilosophers)]);
+                         &philosophers[next(i, numPhilosophers)], 
+                         &queueSystem);
 
     // create Philosopher processes 
     philThread.push_back(std::thread(&Philosopher::run, &philosophers[i]));
   }
 
-  for (int i = 0; i < numPhilosophers; i++) {
+  philThread.push_back(std::thread(&PhilosopherQueue::run, &queueSystem));
+
+  for (int i = 0; i <= numPhilosophers; i++) {
     philThread[i].join();
   }
 
