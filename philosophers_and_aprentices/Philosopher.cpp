@@ -39,6 +39,9 @@ void Philosopher::eat() {
   else { //plain eating time
     if ((s_policies & Policies::ROUNDROBIN) == Policies::ROUNDROBIN) {
       m_timeToEat = s_roundRobinTime; //eat in time intervals
+      if (m_timeToEat > m_totalTimeToEat) {
+        m_timeToEat = m_totalTimeToEat;
+      }
     }
     else {
       m_timeToEat = m_totalTimeToEat; //eat all your time at once
