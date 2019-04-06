@@ -42,7 +42,7 @@ void Console::Clear() {
   #endif
 }
 
-float Console::ReadFloat() {
+float Console::ReadFloat(float max) {
   bool decimal = false; //true when dealing with decimals false when whole numbers
   std::string resStr; //char buffer
   char c; //current char being read
@@ -78,10 +78,10 @@ float Console::ReadFloat() {
 
   std::cout << ('\n');
 
-  return std::stof(resStr); //return all chars as a float
+  return std::fmin(std::stof(resStr), max); //return all chars as a float
 }
 
-int Console::ReadInt() {
+int Console::ReadInt(int max) {
   std::string resStr = ""; //char buffer
   char c; //current char being read
   do {
@@ -103,7 +103,9 @@ int Console::ReadInt() {
     // end when we have a valid int and enter is pressed
   } while (c != '\r' && c != '\n' && c != '\0' || resStr.size() == 0);
 
-  return std::stoi(resStr); //return all chars as an int
+  int ret = std::stoi(resStr); //return all chars as an int
+
+  return (ret < max) ? ret : max;
 }
 
 std::string Console::ReadString() {

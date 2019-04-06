@@ -21,9 +21,9 @@ void PhilosopherProgram::run() {
 }
 
 void PhilosopherProgram::PrepareThreads() {
-  std::cout << "How many philosophers will there be? : ";
+  std::cout << "How many philosophers will there be? (max 10) : ";
 
-  numPhilosophers = Console::ReadInt();
+  numPhilosophers = Console::ReadInt(10);
   std::cout << std::endl;
   std::cout << std::endl;
 
@@ -40,8 +40,8 @@ void PhilosopherProgram::PrepareThreads() {
     bool isMaster = Console::ReadBool('m', 'a');
     std::cout << std::endl;
 
-    std::cout << "How much time does " << philName << " need to eat? (seconds): ";
-    int timeToEat = static_cast<int>(Console::ReadFloat() * 1000.f);
+    std::cout << "How much time does " << philName << " need to eat? (seconds max 20.0): ";
+    int timeToEat = static_cast<int>(Console::ReadFloat(20.0f) * 1000.f);
     std::cout << std::endl;
 
     philosophers.emplace_back(i + 1, philName,
@@ -83,8 +83,8 @@ void PhilosopherProgram::Scheduling() {
 
   if (RoundRobin) {
 
-    std::cout << "Round Robin Time: ";
-    Philosopher::s_roundRobinTime = static_cast<int>(Console::ReadFloat() * 1000.f);
+    std::cout << "Round Robin Time (max 5.0): ";
+    Philosopher::s_roundRobinTime = static_cast<int>(Console::ReadFloat(5.0f) * 1000.f);
     std::cout << std::endl;
 
     Philosopher::s_policies += Policies::ROUNDROBIN;

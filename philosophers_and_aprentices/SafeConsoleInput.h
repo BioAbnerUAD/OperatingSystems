@@ -11,12 +11,12 @@ namespace Console
   /**
    * @brief: read float value from console
    */
-  float ReadFloat();
+  float ReadFloat(float max);
 
   /**
    * @brief: read integer value from console
    */
-  int ReadInt();
+  int ReadInt(int max);
 
   /**
    * @brief: read string message from console
